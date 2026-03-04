@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Court Date Manager — Goa</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;color:#1a202c;min-height:100vh}
+header{background:linear-gradient(135deg,#1a365d,#2a4a7f);color:white;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+header h1{font-size:1.25rem;font-weight:700}
+.sub{font-size:.72rem;opacity:.75;margin-top:2px}
+.main{max-width:980px;margin:0 auto;padding:18px 14px}
+.tabs{display:flex;gap:7px;margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:7px 15px;border-radius:20px;border:none;cursor:pointer;font-size:.8rem;font-weight:600;transition:all .2s;background:white;color:#4a5568;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.tab.active{background:#2a4a7f;color:white}
+.tab:hover:not(.active){background:#e2e8f0}
+.alert-banner{background:#fff3cd;border-left:4px solid #f6ad55;border-radius:8px;padding:11px 15px;margin-bottom:14px;font-size:.82rem;display:none;line-height:1.7}
+.alert-banner.show{display:block}
+.card{background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.07);padding:18px;margin-bottom:18px}
+.card h2{font-size:.92rem;color:#2a4a7f;margin-bottom:13px;font-weight:700}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+@media(max-width:580px){.form-grid{grid-template-columns:1fr}}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fg label{font-size:.73rem;font-weight:600;color:#4a5568}
+.fg input,.fg select,.fg textarea{padding:8px 11px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.86rem;outline:none;transition:border .2s;background:#fff}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#2a4a7f}
+.fg.full{grid-column:1/-1}
+.btn{padding:8px 18px;border:none;border-radius:8px;cursor:pointer;font-size:.86rem;font-weight:600;transition:all .2s}
+.btn-primary{background:#2a4a7f;color:white}
+.btn-green{background:#276749;color:white}
+.btn-light{background:#f7fafc;color:#4a5568;border:1px solid #e2e8f0}
+.btn-del{background:#e53e3e;color:white;font-size:.73rem;padding:3px 8px;border-radius:5px;border:none;cursor:pointer}
+.btn-sm{background:#ebf4ff;color:#2a4a7f;font-size:.73rem;padding:3px 8px;border-radius:5px;border:none;cursor:pointer;font-weight:600}
+/* SESSION BADGE */
+.sess-row{display:flex;gap:8px;align-items:center;margin-top:4px}
+.sess-btn{padding:5px 14px;border-radius:16px;border:1.5px solid #e2e8f0;background:white;font-size:.76rem;cursor:pointer;font-weight:600;color:#4a5568;transition:all .15s}
+.sess-btn:hover{border-color:#2a4a7f;color:#2a4a7f}
+.sess-btn.active-morning{background:#fffbeb;border-color:#d97706;color:#92400e}
+.sess-btn.active-afternoon{background:#eff6ff;border-color:#3b82f6;color:#1e40af}
+/* LOCATION PICKER */
+.loc-picker{border:1.5px solid #e2e8f0;border-radius:10px;padding:9px;max-height:115px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:5px;background:#fafafa}
+.loc-chip{padding:4px 12px;border-radius:16px;background:white;border:1.5px solid #e2e8f0;font-size:.75rem;cursor:pointer;transition:all .15s;color:#4a5568;font-weight:500}
+.loc-chip:hover{border-color:#2a4a7f;color:#2a4a7f}
+.loc-chip.sel{background:#2a4a7f;color:white;border-color:#2a4a7f}
+/* CATEGORY LABELS */
+.cat-civil{background:#ebf8ff;color:#2b6cb0}
+.cat-criminal{background:#fff5f5;color:#c53030}
+.cat-revenue{background:#f0fff4;color:#276749}
+.cat-rti{background:#faf5ff;color:#6b46c1}
+.cat-tribunal{background:#fffaf0;color:#c05621}
+.cat-inspection{background:#f0f9ff;color:#0369a1}
+.court-label{font-size:.7rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:2px 8px;border-radius:10px;display:inline-block}
+/* CASE CARDS */
+.case-card{background:white;border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid #cbd5e0;display:flex;justify-content:space-between;align-items:flex-start;gap:9px;transition:box-shadow .2s}
+.case-card:hover{box-shadow:0 3px 10px rgba(0,0,0,.1)}
+.case-card.today-card{background:#fffde7}
+.case-card.overdue-card{background:#fff5f5}
+.bc-civil{border-left-color:#3182ce!important}
+.bc-criminal{border-left-color:#e53e3e!important}
+.bc-revenue{border-left-color:#38a169!important}
+.bc-rti{border-left-color:#805ad5!important}
+.bc-tribunal{border-left-color:#dd6b20!important}
+.bc-inspection{border-left-color:#0284c7!important}
+.case-info{flex:1;min-width:0}
+.case-title{font-weight:700;font-size:.9rem}
+.case-meta{font-size:.73rem;color:#718096;margin-top:2px;line-height:1.5}
+.case-loc{font-size:.72rem;color:#805ad5;margin-top:2px}
+.case-sess{font-size:.7rem;font-weight:700;padding:2px 7px;border-radius:8px;display:inline-block;margin-top:3px}
+.sess-morning{background:#fffbeb;color:#92400e}
+.sess-afternoon{background:#eff6ff;color:#1e40af}
+.sess-allday{background:#f0fff4;color:#276749}
+.date-badge{font-size:.8rem;font-weight:700;padding:3px 9px;border-radius:6px;background:#ebf4ff;color:#2a4a7f;white-space:nowrap}
+.date-badge.today-b{background:#fef3c7;color:#d97706}
+.date-badge.overdue-b{background:#fed7d7;color:#c53030}
+.days-left{font-size:.68rem;text-align:right;color:#a0aec0;margin-top:2px}
+.days-left.urgent{color:#e53e3e;font-weight:700}
+/* STATS */
+.stats-row{display:flex;gap:9px;margin-bottom:18px;flex-wrap:wrap}
+.stat-box{flex:1;min-width:75px;background:white;border-radius:10px;padding:11px 7px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.stat-num{font-size:1.45rem;font-weight:800;color:#2a4a7f}
+.stat-label{font-size:.65rem;color:#718096;margin-top:1px}
+.urgent-stat .stat-num{color:#e53e3e}
+/* SEARCH & FILTER */
+.search-bar{width:100%;padding:8px 13px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.86rem;outline:none;margin-bottom:9px}
+.search-bar:focus{border-color:#2a4a7f}
+.filter-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px;align-items:center}
+.filter-chip{padding:3px 11px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;font-size:.73rem;cursor:pointer;font-weight:600;color:#4a5568;transition:all .15s}
+.filter-chip.on{border-color:#2a4a7f;background:#2a4a7f;color:white}
+.court-group{margin-bottom:20px}
+/* WEEK */
+.week-day-label{font-size:.77rem;font-weight:700;color:#4a5568;padding:4px 0;border-bottom:1.5px solid #e2e8f0;margin-bottom:7px}
+.week-day-label.today-label{color:#d97706}
+/* AGENT */
+.agent-box{background:linear-gradient(135deg,#ebf4ff,#f0fff4);border-radius:12px;padding:16px;margin-bottom:14px;border:1.5px solid #bee3f8}
+.agent-msg{font-size:.84rem;line-height:1.9;color:#2d3748}
+.clash-warning{background:#fff5f5;border:1.5px solid #fc8181;border-radius:8px;padding:9px 13px;margin-bottom:7px;font-size:.79rem;color:#c53030}
+.empty-state{text-align:center;padding:34px;color:#a0aec0;font-size:.86rem}
+/* VOICE */
+.voice-btn{display:flex;align-items:center;gap:7px;background:#f7f8fa;border:1.5px dashed #cbd5e0;border-radius:10px;padding:8px 13px;cursor:pointer;font-size:.81rem;color:#4a5568;transition:all .2s;margin-top:8px;width:100%}
+.voice-btn.listening{border-color:#e53e3e;color:#e53e3e;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+/* LOC MANAGER */
+.loc-mgr-item{display:flex;align-items:center;gap:6px;background:#f7fafc;border:1.5px solid #e2e8f0;border-radius:18px;padding:4px 11px;font-size:.78rem}
+.info-box{background:#f0f9ff;border-left:3px solid #0284c7;border-radius:8px;padding:11px 15px;font-size:.8rem;color:#374151;line-height:1.8}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:white;border-radius:14px;padding:22px;max-width:520px;width:93%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.25)}
+.modal-box h3{font-size:1rem;color:#2a4a7f;margin-bottom:4px;font-weight:700}
+.modal-close{float:right;background:none;border:none;font-size:1.3rem;cursor:pointer;color:#718096;margin-top:-2px}
+.loc-date-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;gap:8px}
+.loc-date-row:last-child{border-bottom:none}
+.suggest-btn{font-size:.72rem;background:#ebf4ff;color:#2a4a7f;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-weight:600;white-space:nowrap}
+/* STAFF SETTINGS */
+.staff-box{background:linear-gradient(135deg,#f0fff4,#ebf8ff);border:1.5px solid #bee3f8;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.staff-control{display:flex;align-items:center;gap:7px;font-size:.82rem;font-weight:600;color:#2a4a7f}
+.staff-control input[type=number]{width:52px;padding:5px 8px;border:1.5px solid #bee3f8;border-radius:7px;font-size:.88rem;font-weight:700;text-align:center;outline:none}
+.staff-info{font-size:.76rem;color:#4a5568;line-height:1.6}
+/* LOC CLICKABLE */
+.loc-link{color:#805ad5;cursor:pointer;text-decoration:underline dotted;font-size:.72rem}
+.loc-link:hover{color:#553c9a}
+
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>&#9878;&#65039; Adv Sadanand Online</h1>
+    <div class="sub">Civil &middot; Criminal &middot; Revenue &middot; RTI &middot; Tribunal &middot; Inspection &nbsp;|&nbsp; Morning &amp; Afternoon Sessions</div>
+  </div>
+  <div id="clockDisplay" style="font-size:.78rem;opacity:.9;text-align:right"></div>
+</header>
+<div class="main">
+  <div id="alertBanner" class="alert-banner"></div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-num" id="s0">0</div><div class="stat-label">Total</div></div>
+    <div class="stat-box urgent-stat"><div class="stat-num" id="s1">0</div><div class="stat-label">Today</div></div>
+    <div class="stat-box urgent-stat"><div class="stat-num" id="s2">0</div><div class="stat-label">Tomorrow</div></div>
+    <div class="stat-box"><div class="stat-num" id="s3">0</div><div class="stat-label">This Week</div></div>
+    <div class="stat-box"><div class="stat-num" id="s4">0</div><div class="stat-label">Clashes</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('timeline')">&#128197; Timeline</button>
+    <button class="tab" onclick="switchTab('add')">&#43; Add / Update</button>
+    <button class="tab" onclick="switchTab('weekly')">&#128198; Weekly</button>
+    <button class="tab" onclick="switchTab('agent')">&#129302; Agent</button>
+    <button class="tab" onclick="switchTab('locations')">&#128205; Locations</button>
+  </div>
+
+  <!-- TIMELINE -->
+  <div id="tab-timeline">
+    <input class="search-bar" id="searchBar" placeholder="Search by case, number, party or location..." oninput="renderTimeline()">
+    <div class="filter-row" id="filterRow"></div>
+    <div id="timelineContent"></div>
+  </div>
+
+  <!-- ADD -->
+  <div id="tab-add" style="display:none">
+    <div class="card">
+      <h2 id="formTitle">&#43; Add New Case Date</h2>
+      <div class="form-grid">
+        <div class="fg"><label>Case / File Number</label><input id="fNum" placeholder="e.g. CS/123/2024"></div>
+        <div class="fg"><label>Category</label>
+          <select id="fType" onchange="updateLocPicker()">
+            <option value="Civil">Civil Court</option>
+            <option value="Criminal">Criminal Court</option>
+            <option value="Revenue">Revenue Court</option>
+            <option value="RTI">RTI</option>
+            <option value="Tribunal">Tribunal</option>
+            <option value="Inspection">Inspection</option>
+          </select>
+        </div>
+        <div class="fg"><label>Case Title / Parties</label><input id="fTitle" placeholder="e.g. Sharma vs Verma"></div>
+        <div class="fg"><label>Next Date</label><input type="date" id="fDate" onchange="checkDateConflict()"></div>
+        <div class="fg full">
+          <label>&#128197; Session</label>
+          <div class="sess-row">
+            <button type="button" class="sess-btn" id="sbM" onclick="setSess('Morning')">&#9728;&#65039; Morning</button>
+            <button type="button" class="sess-btn" id="sbA" onclick="setSess('Afternoon')">&#127815; Afternoon</button>
+            <button type="button" class="sess-btn" id="sbD" onclick="setSess('Allday')">&#128467; Full Day</button>
+            <span id="sessHint" style="font-size:.72rem;color:#718096;margin-left:4px"></span>
+          </div>
+        </div>
+        <div class="fg full">
+          <label>&#128205; Location &mdash; tap to select</label>
+          <div class="loc-picker" id="locPicker"></div>
+          <input id="fLocCustom" placeholder="Or type a custom location..." style="margin-top:5px" oninput="deselectChip()">
+        </div>
+        <div class="fg"><label>Judge / Officer / Authority</label><input id="fJudge" placeholder="e.g. Civil Judge / Mamlatdar"></div>
+        <div class="fg"><label>Stage / Purpose</label><input id="fStage" placeholder="e.g. Arguments / Inspection"></div>
+        <div class="fg full"><label>Notes</label><textarea id="fNotes" rows="2" placeholder="Any notes..."></textarea></div>
+      </div>
+      <div id="conflictHint" style="font-size:.78rem;margin-top:8px;padding:7px 11px;border-radius:7px;display:none"></div>
+      <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()">&#127908; <span id="voiceTxt">Tap to speak case details (Chrome/Edge)</span></button>
+      <div id="voiceOut" style="font-size:.76rem;color:#718096;margin-top:4px;min-height:15px"></div>
+      <div style="display:flex;gap:9px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="saveCase()">&#128190; Save</button>
+        <button class="btn btn-light" onclick="clearForm()">Clear</button>
+      </div>
+    </div>
+    <div class="card"><h2>&#9998; Update Existing Cases</h2><div id="updateList"></div></div>
+  </div>
+
+  <!-- WEEKLY -->
+  <div id="tab-weekly" style="display:none">
+    <div class="card"><h2>&#128198; This Week &mdash; Morning &amp; Afternoon</h2><div id="weeklyContent"></div></div>
+  </div>
+
+  <!-- AGENT -->
+  <div id="tab-agent" style="display:none">
+    <div class="agent-box"><div class="agent-msg" id="agentMsg"></div></div>
+    <div id="clashList"></div>
+    <div class="card"><h2>&#128203; Reminders &mdash; Next 7 Days</h2><div id="reminderList"></div></div>
+  </div>
+
+  <!-- LOCATIONS -->
+  <div id="tab-locations" style="display:none">
+    <div class="card">
+      <h2>&#128205; Your Court Locations &mdash; Goa</h2>
+      <div id="staffBoxContainer"></div>
+      <p style="font-size:.8rem;color:#718096;margin-bottom:13px">All pre-loaded from your list. Add more anytime. When adding a case, tap a chip to select instantly.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:15px" id="locMgrList"></div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div><div style="font-size:.73rem;font-weight:600;color:#4a5568;margin-bottom:3px">Location Name</div><input id="newLocName" placeholder="e.g. Sanguem Mamlatdar" style="padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.82rem;outline:none;width:220px"></div>
+        <div><div style="font-size:.73rem;font-weight:600;color:#4a5568;margin-bottom:3px">Town</div><input id="newLocTown" placeholder="e.g. Sanguem" style="padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.82rem;outline:none;width:120px"></div>
+        <div><div style="font-size:.73rem;font-weight:600;color:#4a5568;margin-bottom:3px">Category</div>
+          <select id="newLocCat" style="padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.82rem;outline:none">
+            <option>Civil</option><option>Criminal</option><option>Revenue</option><option>RTI</option><option>Tribunal</option><option>Inspection</option><option value="General">General</option>
+          </select>
+        </div>
+        <button class="btn btn-green" onclick="addLocation()">+ Add</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>&#128161; Session &amp; Clash Logic</h2>
+      <div class="info-box">
+        &#9728;&#65039; <strong>Morning + &#127815; Afternoon on same date</strong> &rarr; No clash &mdash; you can attend two different courts in one day.<br>
+        &#9888;&#65039; <strong>Two matters in the same session at the same location</strong> &rarr; Clash flagged.<br>
+        &#10067; <strong>Both Full Day at different locations on same date</strong> &rarr; Clash flagged.<br>
+        &#10003; <strong>Same date, clearly different sessions or different locations</strong> &rarr; No clash.
+      </div>
+    </div>
+  </div>
+
+<!-- LOCATION DATES MODAL -->
+<div class="modal-overlay" id="locModal" onclick="closeLocModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('locModal').classList.remove('open')">&times;</button>
+    <h3 id="modalLocName">Location</h3>
+    <div style="font-size:.76rem;color:#718096;margin-bottom:12px" id="modalLocSub"></div>
+    <div id="modalLocContent"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+var cases=JSON.parse(localStorage.getItem('cdmg3_cases')||'[]');
+var locations=JSON.parse(localStorage.getItem('cdmg3_locs')||'[]');
+var settings=JSON.parse(localStorage.getItem('cdmg3_settings')||'{"totalStaff":3,"reserve":1}');
+var editingId=null,selectedLoc='',currentSess='Morning';
+var activeFilters=new Set();
+var CATS=['Civil','Criminal','Revenue','RTI','Tribunal','Inspection'];
+var CCLS={Civil:'cat-civil',Criminal:'cat-criminal',Revenue:'cat-revenue',RTI:'cat-rti',Tribunal:'cat-tribunal',Inspection:'cat-inspection'};
+var BC={Civil:'bc-civil',Criminal:'bc-criminal',Revenue:'bc-revenue',RTI:'bc-rti',Tribunal:'bc-tribunal',Inspection:'bc-inspection'};
+var BCOL={Civil:'#3182ce',Criminal:'#e53e3e',Revenue:'#38a169',RTI:'#805ad5',Tribunal:'#dd6b20',Inspection:'#0284c7',General:'#718096'};
+
+function maxLocs(){return settings.totalStaff - settings.reserve;}
+
+// ── SEED LOCATIONS ────────────────────────────────────────────────────────────
+if(!locations.length){
+  locations=[
+    {id:101,name:'Civil Court Merces',town:'Merces',cat:'Civil'},{id:102,name:'JMFC Court Merces',town:'Merces',cat:'Criminal'},{id:103,name:'District Court Merces',town:'Merces',cat:'Civil'},
+    {id:201,name:'Mamlatdar Office Panaji',town:'Panaji',cat:'Revenue'},{id:202,name:'Tribunal Panaji',town:'Panaji',cat:'Tribunal'},{id:203,name:'BDO Office Panaji',town:'Panaji',cat:'Revenue'},
+    {id:301,name:'Civil Court Margao',town:'Margao',cat:'Civil'},{id:302,name:'JMFC Court Margao',town:'Margao',cat:'Criminal'},{id:303,name:'District Court Margao',town:'Margao',cat:'Civil'},
+    {id:401,name:'Civil Court Ponda',town:'Ponda',cat:'Civil'},{id:402,name:'JMFC Court Ponda',town:'Ponda',cat:'Criminal'},{id:403,name:'District Court Ponda',town:'Ponda',cat:'Civil'},
+    {id:501,name:'Mamlatdar Office Mapusa',town:'Mapusa',cat:'Revenue'},{id:502,name:'Civil Court Mapusa',town:'Mapusa',cat:'Civil'},{id:503,name:'JMFC Court Mapusa',town:'Mapusa',cat:'Criminal'},{id:504,name:'District Court Mapusa',town:'Mapusa',cat:'Civil'},
+    {id:601,name:'Civil Court Pernem',town:'Pernem',cat:'Civil'},{id:602,name:'JMFC Court Pernem',town:'Pernem',cat:'Criminal'},{id:603,name:'Mamlatdar Office Pernem',town:'Pernem',cat:'Revenue'},{id:604,name:'Dy Collector Office Pernem',town:'Pernem',cat:'Revenue'},{id:605,name:'BDO Office Pernem',town:'Pernem',cat:'Revenue'},{id:606,name:'TCP Office Pernem',town:'Pernem',cat:'Inspection'},
+    {id:701,name:'Civil Court Bicholim',town:'Bicholim',cat:'Civil'},{id:702,name:'JMFC Court Bicholim',town:'Bicholim',cat:'Criminal'},{id:703,name:'Revenue Court Bicholim',town:'Bicholim',cat:'Revenue'},
+    {id:801,name:'Civil Court Quepem',town:'Quepem',cat:'Civil'},{id:802,name:'JMFC Court Quepem',town:'Quepem',cat:'Criminal'},{id:803,name:'Mamlatdar Office Quepem',town:'Quepem',cat:'Revenue'},
+    {id:901,name:'Civil Court Vasco',town:'Vasco',cat:'Civil'},{id:902,name:'JMFC Court Vasco',town:'Vasco',cat:'Criminal'}
+  ];
+  saveLocs();
+}
+if(!cases.length){
+  var ad=function(n){var d=new Date();d.setDate(d.getDate()+n);return d.toISOString().split('T')[0];};
+  cases=[
+    {id:1,num:'CS/45/2024',type:'Civil',title:'Sharma vs Verma',date:ad(0),sess:'Morning',loc:'Civil Court Merces',judge:'Civil Judge',stage:'Arguments',notes:''},
+    {id:2,num:'SC/12/2023',type:'Criminal',title:'State vs Ramesh',date:ad(0),sess:'Morning',loc:'Civil Court Merces',judge:'JMFC',stage:'Evidence',notes:'Same location'},
+    {id:3,num:'CS/99/2024',type:'Civil',title:"D'Souza vs Fernandes",date:ad(0),sess:'Morning',loc:'Civil Court Margao',judge:'Civil Judge',stage:'Arguments',notes:''},
+    {id:4,num:'RV/88/2024',type:'Revenue',title:'Land Dispute Plot 44',date:ad(0),sess:'Afternoon',loc:'Mamlatdar Office Panaji',judge:'Mamlatdar',stage:'Hearing',notes:''},
+    {id:5,num:'TRB/7/2024',type:'Tribunal',title:'Service Matter Rajan',date:ad(1),sess:'Morning',loc:'Tribunal Panaji',judge:'Bench',stage:'Arguments',notes:''},
+    {id:6,num:'CS/67/2024',type:'Civil',title:'ABC Ltd vs XYZ',date:ad(2),sess:'Afternoon',loc:'District Court Mapusa',judge:'Dist Judge',stage:'Judgment',notes:''},
+    {id:7,num:'INS/3/2024',type:'Inspection',title:'Factory Inspection',date:ad(3),sess:'Morning',loc:'TCP Office Pernem',judge:'TCP Officer',stage:'Inspection',notes:''},
+    {id:8,num:'RTI/12/2024',type:'RTI',title:'RTI PWD Records',date:ad(4),sess:'Morning',loc:'BDO Office Panaji',judge:'PIO',stage:'Reply',notes:''}
+  ];
+  saveCases();
+}
+
+function saveCases(){localStorage.setItem('cdmg3_cases',JSON.stringify(cases));updateStats();checkAlerts();}
+function saveLocs(){localStorage.setItem('cdmg3_locs',JSON.stringify(locations));}
+function saveSettings(){localStorage.setItem('cdmg3_settings',JSON.stringify(settings));}
+function todayStr(){return new Date().toISOString().split('T')[0];}
+function tomorrowStr(){var d=new Date();d.setDate(d.getDate()+1);return d.toISOString().split('T')[0];}
+function daysFrom(s){return Math.round((new Date(s)-new Date(todayStr()))/86400000);}
+function fmtDate(s){return new Date(s).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});}
+function sbadge(s){if(s==='Morning')return '<span class="case-sess sm">&#9728; Morning</span>';if(s==='Afternoon')return '<span class="case-sess sa">&#127815; Afternoon</span>';return '<span class="case-sess sfd">&#128467; Full Day</span>';}
+
+// ── CAPACITY ──────────────────────────────────────────────────────────────────
+function getDistinctLocs(date,sess,excludeId){
+  var locs=[];
+  cases.forEach(function(c){
+    if(c.id===excludeId||c.date!==date)return;
+    var inSlot=(sess==='Morning'&&(c.sess==='Morning'||c.sess==='Allday'))||(sess==='Afternoon'&&(c.sess==='Afternoon'||c.sess==='Allday'));
+    if(!inSlot)return;
+    var l=(c.loc||'').trim().toLowerCase();
+    if(l&&locs.indexOf(l)===-1)locs.push(l);
+  });
+  return locs;
+}
+function getOverloadedSlots(){
+  var slots={};
+  cases.forEach(function(c){
+    var ss=c.sess==='Allday'?['Morning','Afternoon']:[c.sess||'Morning'];
+    ss.forEach(function(s){
+      var k=c.date+'|'+s;
+      if(!slots[k])slots[k]={date:c.date,sess:s,locs:[]};
+      var l=(c.loc||'').trim().toLowerCase();
+      if(l&&slots[k].locs.indexOf(l)===-1)slots[k].locs.push(l);
+    });
+  });
+  var over=[];
+  Object.keys(slots).forEach(function(k){if(slots[k].locs.length>maxLocs())over.push(slots[k]);});
+  return over;
+}
+function capPill(n){
+  var ml=maxLocs();
+  if(n<=0)return '<span class="cap-pill cp-ok">Free</span>';
+  if(n<ml)return '<span class="cap-pill cp-ok">'+n+'/'+ml+' loc &#10003;</span>';
+  if(n===ml)return '<span class="cap-pill cp-warn">'+n+'/'+ml+' &mdash; Reserve only</span>';
+  return '<span class="cap-pill cp-over">'+n+' loc &mdash; OVERLOADED &#9888;</span>';
+}
+function capBar(n){
+  var ml=maxLocs(),ts=settings.totalStaff,bg=n>ml?'#fff5f5':n===ml?'#fffbeb':'#f0fff4';
+  var html='<div style="display:flex;align-items:center;padding:8px 12px;border-radius:9px;background:'+bg+';margin-bottom:6px">';
+  for(var i=1;i<=ts;i++){
+    var cls,lbl;
+    if(i<=n&&n>ml){cls='cap-over';lbl='!';}
+    else if(i<=n){cls='cap-used';lbl=i;}
+    else if(i===ts){cls='cap-reserve';lbl='R';}
+    else{cls='cap-free';lbl='&#10003;';}
+    html+='<div class="cap-slot '+cls+'">'+lbl+'</div>';
+  }
+  var msg=n===0?'All free':n<ml?n+' out, '+(ts-n-settings.reserve)+' free, reserve available':n===ml?ml+' out &mdash; reserve only':'OVERLOADED: '+n+' locations!';
+  html+='<span style="font-size:.71rem;color:'+(n>ml?'#c53030':n===ml?'#92400e':'#276749')+';margin-left:8px">'+msg+'</span></div>';
+  return html;
+}
+
+// ── STAFF SETTINGS PANEL ──────────────────────────────────────────────────────
+function renderStaffBox(containerId){
+  var ml=maxLocs();
+  var html='<div class="staff-box">'+
+    '<div class="staff-control">&#128100; Total Staff: <input type="number" id="inp_totalStaff" min="2" max="20" value="'+settings.totalStaff+'" onchange="updateStaff()"></div>'+
+    '<div class="staff-control">&#9888; Reserve: <input type="number" id="inp_reserve" min="1" max="10" value="'+settings.reserve+'" onchange="updateStaff()"></div>'+
+    '<div class="staff-info" id="staffInfoText">Max <strong>'+ml+'</strong> location(s) per session<br>'+settings.totalStaff+' staff &minus; '+settings.reserve+' reserve = <strong>'+ml+' deployable</strong></div>'+
+  '</div>';
+  document.getElementById(containerId).innerHTML=html;
+}
+function updateStaff(){
+  var ts=parseInt(document.getElementById('inp_totalStaff').value)||3;
+  var rs=parseInt(document.getElementById('inp_reserve').value)||1;
+  if(rs>=ts){alert('Reserve must be less than total staff.');return;}
+  settings.totalStaff=ts;settings.reserve=rs;saveSettings();
+  document.getElementById('staffInfoText').innerHTML='Max <strong>'+(ts-rs)+'</strong> location(s) per session<br>'+ts+' staff &minus; rs+' reserve = <strong>'+(ts-rs)+' deployable</strong>';
+  updateStats();checkAlerts();
+}
+
+// ── LOCATION DATES MODAL ──────────────────────────────────────────────────────
+function openLocModal(locName){
+  document.getElementById('modalLocName').textContent='&#128205; '+locName;
+  var upcoming=cases.filter(function(c){
+    return (c.loc||'').trim().toLowerCase()===locName.trim().toLowerCase()&&daysFrom(c.date)>=-1;
+  }).sort(function(a,b){return a.date.localeCompare(b.date)||(a.sess==='Afternoon'?1:-1);});
+  var past=cases.filter(function(c){
+    return (c.loc||'').trim().toLowerCase()===locName.trim().toLowerCase()&&daysFrom(c.date)<-1;
+  }).sort(function(a,b){return b.date.localeCompare(a.date);}).slice(0,5);
+
+  var total=cases.filter(function(c){return (c.loc||'').trim().toLowerCase()===locName.trim().toLowerCase();}).length;
+  document.getElementById('modalLocSub').innerHTML=
+    '<strong>'+total+'</strong> total case(s) at this location &nbsp;&middot;&nbsp; <strong>'+upcoming.length+'</strong> upcoming';
+
+  var html='';
+  if(!upcoming.length&&!past.length){
+    html='<div class="empty-state">No cases recorded at this location yet.</div>';
+  }
+  if(upcoming.length){
+    html+='<div style="font-size:.76rem;font-weight:700;color:#276749;margin-bottom:8px;letter-spacing:.3px">UPCOMING DATES</div>';
+    // Find "free" dates at this location for suggesting
+    html+=upcoming.map(function(c){
+      var d=daysFrom(c.date);
+      var dayLabel=d===0?'<span style="background:#fef3c7;color:#d97706;font-weight:700;padding:1px 6px;border-radius:5px;font-size:.7rem">TODAY</span>':
+                   d===1?'<span style="background:#eff6ff;color:#1e40af;font-weight:700;padding:1px 6px;border-radius:5px;font-size:.7rem">TOMORROW</span>':
+                   '<span style="font-size:.7rem;color:#718096">in '+d+' days</span>';
+      // Check capacity for this slot
+      var sessLocs=getDistinctLocs(c.date,c.sess==='Afternoon'?'Afternoon':'Morning',null);
+      var capNote=sessLocs.length>=maxLocs()?
+        '<span style="font-size:.68rem;color:#92400e;background:#fffbeb;padding:1px 5px;border-radius:5px">Reserve only</span>':'';
+      return '<div class="loc-date-row">'+
+        '<div>'+
+          '<div style="font-size:.85rem;font-weight:600">'+c.title+'</div>'+
+          '<div style="font-size:.72rem;color:#718096">'+c.num+' &middot; '+sbadge(c.sess||'Morning')+' &middot; '+(c.stage||'Hearing')+' '+capNote+'</div>'+
+        '</div>'+
+        '<div style="text-align:right;flex-shrink:0">'+
+          '<div style="font-size:.82rem;font-weight:700;color:#2a4a7f">'+fmtDate(c.date)+'</div>'+
+          dayLabel+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  // Free slots suggestion
+  html+='<div style="margin-top:14px;padding:10px 12px;background:#f0fff4;border-radius:8px;border:1px solid #68d391">'+
+    '<div style="font-size:.74rem;font-weight:700;color:#276749;margin-bottom:6px">&#128197; SUGGEST FREE SLOTS (next 14 days)</div>';
+  var freeDates=[];
+  for(var i=1;i<=14;i++){
+    var fd=new Date();fd.setDate(fd.getDate()+i);
+    var fds=fd.toISOString().split('T')[0];
+    var dayName=fd.toLocaleDateString('en-IN',{weekday:'short'});
+    if(dayName==='Sun')continue; // skip Sundays
+    ['Morning','Afternoon'].forEach(function(s){
+      var locs=getDistinctLocs(fds,s,null);
+      var hasThisLoc=cases.some(function(c){return c.date===fds&&(c.loc||'').trim().toLowerCase()===locName.trim().toLowerCase()&&(s==='Morning'?c.sess!=='Afternoon':c.sess==='Afternoon'||c.sess==='Allday');});
+      if(!hasThisLoc&&locs.length<maxLocs()){
+        freeDates.push({date:fds,sess:s,locSlots:locs.length});
+      }
+    });
+  }
+  if(!freeDates.length){
+    html+='<div style="font-size:.76rem;color:#718096">No free slots in next 14 days.</div>';
+  } else {
+    html+=freeDates.slice(0,8).map(function(f){
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #d1fae5">'+
+        '<span style="font-size:.78rem;color:#1a202c">'+fmtDate(f.date)+' &mdash; '+(f.sess==='Morning'?'&#9728; Morning':'&#127815; Afternoon')+'</span>'+
+        '<span style="font-size:.7rem;color:#276749;background:#c6f6d5;padding:1px 7px;border-radius:8px">'+f.locSlots+'/'+maxLocs()+' loc used &#10003;</span>'+
+      '</div>';
+    }).join('');
+  }
+  html+='</div>';
+
+  if(past.length){
+    html+='<div style="font-size:.73rem;font-weight:700;color:#718096;margin:12px 0 6px">RECENT PAST DATES</div>';
+    html+=past.map(function(c){
+      return '<div class="loc-date-row" style="opacity:.6">'+
+        '<div><div style="font-size:.83rem;font-weight:600">'+c.title+'</div>'+
+        '<div style="font-size:.71rem;color:#718096">'+c.num+' &middot; '+sbadge(c.sess||'Morning')+'</div></div>'+
+        '<div style="font-size:.8rem;color:#718096;text-align:right">'+fmtDate(c.date)+'</div></div>';
+    }).join('');
+  }
+
+  document.getElementById('modalLocContent').innerHTML=html;
+  document.getElementById('locModal').classList.add('open');
+}
+function closeLocModal(e){if(e.target===document.getElementById('locModal'))document.getElementById('locModal').classList.remove('open');}
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+function updateStats(){
+  var wEnd=new Date();wEnd.setDate(wEnd.getDate()+7);
+  document.getElementById('s0').textContent=cases.length;
+  document.getElementById('s1').textContent=cases.filter(function(c){return c.date===todayStr();}).length;
+  document.getElementById('s2').textContent=cases.filter(function(c){return c.date===tomorrowStr();}).length;
+  document.getElementById('s3').textContent=cases.filter(function(c){return c.date>=todayStr()&&new Date(c.date)<=wEnd;}).length;
+  document.getElementById('s4').textContent=getOverloadedSlots().length;
+}
+
+function checkAlerts(){
+  var b=document.getElementById('alertBanner'),msgs=[];
+  var t=todayStr(),tm=tomorrowStr();
+  var tc=cases.filter(function(c){return c.date===t;});
+  var tmc=cases.filter(function(c){return c.date===tm;});
+  var over=getOverloadedSlots();
+  if(tc.length){
+    var mT=tc.filter(function(c){return c.sess!=='Afternoon';}),aT=tc.filter(function(c){return c.sess==='Afternoon'||c.sess==='Allday';});
+    var mL=getDistinctLocs(t,'Morning',null).length,aL=getDistinctLocs(t,'Afternoon',null).length;
+    if(mT.length)msgs.push('&#9728; <strong>TODAY Morning ('+mL+'/'+maxLocs()+' loc):</strong> '+mT.map(function(c){return c.title+(c.loc?' @ '+c.loc:'');}).join(' &middot; '));
+    if(aT.length)msgs.push('&#127815; <strong>TODAY Afternoon ('+aL+'/'+maxLocs()+' loc):</strong> '+aT.map(function(c){return c.title+(c.loc?' @ '+c.loc:'');}).join(' &middot; '));
+  }
+  if(tmc.length)msgs.push('&#128993; <strong>TOMORROW ('+tmc.length+'):</strong> '+tmc.map(function(c){return c.title;}).join(' &middot; '));
+  if(over.length)msgs.push('&#9888;&#65039; <strong>OVERLOADED: '+over.length+' session(s) exceed capacity</strong>');
+  if(msgs.length){b.innerHTML=msgs.join('<br>');b.classList.add('show');}else b.classList.remove('show');
+}
+
+function setSess(s){
+  currentSess=s;
+  document.getElementById('sbM').className='sess-btn'+(s==='Morning'?' am':'');
+  document.getElementById('sbA').className='sess-btn'+(s==='Afternoon'?' pm':'');
+  document.getElementById('sbD').className='sess-btn'+(s==='Allday'?' fd':'');
+  refreshConflict();
+}
+function refreshConflict(){
+  var date=document.getElementById('fDate')?document.getElementById('fDate').value:'';
+  var hint=document.getElementById('conflictHint');if(!hint)return;
+  if(!date){hint.style.display='none';return;}
+  var loc=selectedLoc||(document.getElementById('fLocCustom')?document.getElementById('fLocCustom').value.trim():'');
+  var sessions=currentSess==='Allday'?['Morning','Afternoon']:[currentSess];
+  var msgs=[],isOver=false;
+  sessions.forEach(function(s){
+    var existing=getDistinctLocs(date,s,editingId);
+    var nl=(loc||'').trim().toLowerCase(),after=existing.slice();
+    if(nl&&after.indexOf(nl)===-1)after.push(nl);
+    var ml=maxLocs(),sl=s==='Morning'?'&#9728; Morning':'&#127815; Afternoon';
+    if(after.length===0)msgs.push('<span style="color:#276749">'+sl+': Free &mdash; all staff available.</span>');
+    else if(after.length<=ml){var col=after.length===ml?'#92400e':'#276749';msgs.push('<span style="color:'+col+'">'+sl+': '+after.length+'/'+ml+' locations. '+(after.length===ml?'Reserve only.':'OK.')+'</span>');}
+    else{isOver=true;msgs.push('<span style="color:#c53030"><strong>&#9888; OVERLOADED ('+sl+'):</strong> '+after.length+' locations, max '+ml+'</span>');}
+  });
+  hint.innerHTML=msgs.join('<br>');
+  hint.style.display='block';
+  hint.style.background=isOver?'#fff5f5':'#f7fafc';
+  hint.style.border='1px solid '+(isOver?'#fc8181':'#e2e8f0');
+}
+
+function renderFilters(){
+  var html='<span style="font-size:.73rem;color:#718096;margin-right:3px">Filter:</span>';
+  CATS.forEach(function(c){html+='<button class="filter-chip '+(activeFilters.has(c)?'on':'')+'" onclick="toggleFilter(\''+c+'\')">'+c+'</button>';});
+  document.getElementById('filterRow').innerHTML=html;
+}
+function toggleFilter(cat){if(activeFilters.has(cat))activeFilters.delete(cat);else activeFilters.add(cat);renderFilters();renderTimeline();}
+
+// helper: loc HTML with click
+function locHtml(loc){
+  if(!loc)return '';
+  return '<div style="font-size:.72rem;margin-top:2px"><span class="loc-link" onclick="openLocModal(\''+loc.replace(/\'/g,"\\'")+'\')" title="Click to see all dates here">&#128205; '+loc+'</span></div>';
+}
+
+function renderTimeline(){
+  var q=(document.getElementById('searchBar')?document.getElementById('searchBar').value:'').toLowerCase();
+  var list=cases.filter(function(c){return daysFrom(c.date)>=-30;});
+  if(activeFilters.size)list=list.filter(function(c){return activeFilters.has(c.type);});
+  if(q)list=list.filter(function(c){return c.title.toLowerCase().indexOf(q)>-1||c.num.toLowerCase().indexOf(q)>-1||(c.loc||'').toLowerCase().indexOf(q)>-1;});
+  list.sort(function(a,b){return a.date.localeCompare(b.date)||((a.sess==='Afternoon'?1:0)-(b.sess==='Afternoon'?1:0));});
+  var el=document.getElementById('timelineContent');
+  if(!list.length){el.innerHTML='<div class="empty-state">No cases found.</div>';return;}
+  var grp={};list.forEach(function(c){if(!grp[c.type])grp[c.type]=[];grp[c.type].push(c);});
+  var html='';
+  CATS.forEach(function(type){
+    if(!grp[type])return;
+    html+='<div class="court-group"><span class="court-label '+CCLS[type]+'">'+type+'</span>';
+    grp[type].forEach(function(c){
+      var d=daysFrom(c.date),isT=c.date===todayStr(),isO=d<0;
+      html+='<div class="case-card '+BC[c.type]+' '+(isT?'today-card':'')+(isO?' overdue-card':'')+'">'+
+        '<div class="case-info"><div class="case-title">'+c.title+'</div>'+
+        '<div class="case-meta">'+c.num+(c.judge?' &middot; '+c.judge:'')+(c.stage?' &middot; <em>'+c.stage+'</em>':'')+'</div>'+
+        locHtml(c.loc)+sbadge(c.sess||'Morning')+
+        (c.notes?'<div class="case-meta" style="font-style:italic;color:#b0b8c8;margin-top:2px">'+c.notes+'</div>':'')+
+        '</div><div style="text-align:right;flex-shrink:0">'+
+        '<div class="date-badge '+(isT?'tb':isO?'ob':'')+'">'+fmtDate(c.date)+'</div>'+
+        '<div class="days-left '+(d<=2&&d>=0?'urgent':'')+'">'+( isO?'&#9888; '+Math.abs(d)+'d ago':isT?'&#128308; TODAY':d+'d away')+'</div>'+
+        '<div style="display:flex;gap:4px;margin-top:5px;justify-content:flex-end">'+
+        '<button class="btn-sm" onclick="editCase('+c.id+')">&#9998;</button>'+
+        '<button class="btn-del" onclick="deleteCase('+c.id+')">&#10005;</button>'+
+        '</div></div></div>';
+    });
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+function renderWeekly(){
+  var html='';
+  for(var i=0;i<7;i++){
+    var d=new Date();d.setDate(d.getDate()+i);
+    var ds=d.toISOString().split('T')[0];
+    var dc=cases.filter(function(c){return c.date===ds;});
+    var isT=ds===todayStr();
+    var lbl=d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'});
+    html+='<div style="margin-bottom:22px"><div class="wdl '+(isT?'tl':'')+'">'+(isT?'TODAY &mdash; ':'')+lbl+'</div>';
+    if(!dc.length){html+='<div style="font-size:.78rem;color:#a0aec0;padding-bottom:8px">No hearings</div></div>';continue;}
+    var mC=dc.filter(function(c){return c.sess!=='Afternoon';}),aC=dc.filter(function(c){return c.sess==='Afternoon'||c.sess==='Allday';});
+    var mL=getDistinctLocs(ds,'Morning',null),aL=getDistinctLocs(ds,'Afternoon',null);
+    if(mC.length){
+      html+='<div class="sess-hdr"><span style="font-size:.73rem;font-weight:700;color:#92400e">&#9728; Morning</span>'+capPill(mL.length)+'</div>';
+      html+=capBar(mL.length);
+      var mByL={};mC.forEach(function(c){var l=c.loc||'(no location)';if(!mByL[l])mByL[l]=[];mByL[l].push(c);});
+      Object.keys(mByL).forEach(function(loc){
+        html+='<div style="font-size:.71rem;font-weight:700;color:#4a5568;margin:5px 0 3px"><span class="loc-link" onclick="openLocModal(\''+loc.replace(/\'/g,"\\'")+'\')">&#128205; '+loc+' &#8599;</span></div>';
+        mByL[loc].forEach(function(c){html+='<div class="case-card '+BC[c.type]+'" style="margin-bottom:4px"><div class="case-info"><div class="case-title">'+c.title+'</div><div class="case-meta">'+c.num+' &middot; <span class="court-label '+CCLS[c.type]+'" style="font-size:.62rem;padding:1px 6px">'+c.type+'</span>'+(c.stage?' &middot; '+c.stage:'')+'</div></div></div>';});
+      });
+    }
+    if(aC.length){
+      html+='<div class="sess-hdr" style="margin-top:10px"><span style="font-size:.73rem;font-weight:700;color:#1e40af">&#127815; Afternoon</span>'+capPill(aL.length)+'</div>';
+      html+=capBar(aL.length);
+      var aByL={};aC.forEach(function(c){var l=c.loc||'(no location)';if(!aByL[l])aByL[l]=[];aByL[l].push(c);});
+      Object.keys(aByL).forEach(function(loc){
+        html+='<div style="font-size:.71rem;font-weight:700;color:#4a5568;margin:5px 0 3px"><span class="loc-link" onclick="openLocModal(\''+loc.replace(/\'/g,"\\'")+'\')">&#128205; '+loc+' &#8599;</span></div>';
+        aByL[loc].forEach(function(c){html+='<div class="case-card '+BC[c.type]+'" style="margin-bottom:4px"><div class="case-info"><div class="case-title">'+c.title+'</div><div class="case-meta">'+c.num+' &middot; <span class="court-label '+CCLS[c.type]+'" style="font-size:.62rem;padding:1px 6px">'+c.type+'</span>'+(c.stage?' &middot; '+c.stage:'')+'</div></div></div>';});
+      });
+    }
+    html+='</div>';
+  }
+  document.getElementById('weeklyContent').innerHTML=html;
+}
+
+function renderAgent(){
+  var t=todayStr(),tm=tomorrowStr();
+  var tc=cases.filter(function(c){return c.date===t;}),tmc=cases.filter(function(c){return c.date===tm;});
+  var upcoming=cases.filter(function(c){var d=daysFrom(c.date);return d>1&&d<=7;}).sort(function(a,b){return a.date.localeCompare(b.date);});
+  var over=getOverloadedSlots();
+  var h=new Date().getHours(),greet=h<12?'Morning':h<17?'Afternoon':'Evening';
+  var ml=maxLocs();
+  var msg='<strong>&#129302; Good '+greet+', Counsellor!</strong> ('+settings.totalStaff+' staff, '+settings.reserve+' reserve, max '+ml+' locations/session)<br><br>';
+  if(tc.length){
+    var mT=tc.filter(function(c){return c.sess!=='Afternoon';}),aT=tc.filter(function(c){return c.sess==='Afternoon'||c.sess==='Allday';});
+    var mL=getDistinctLocs(t,'Morning',null),aL=getDistinctLocs(t,'Afternoon',null);
+    if(mT.length){msg+='&#9728; <strong>TODAY Morning &mdash; '+mL.length+'/'+ml+' locations:</strong><br>';mT.forEach(function(c){msg+='&nbsp;&bull; <em>'+c.title+'</em>'+(c.loc?' @ '+c.loc:'')+'<br>';});if(mL.length>=ml)msg+='&nbsp;<em style="color:#92400e">Reserve only.</em><br>';msg+='<br>';}
+    if(aT.length){msg+='&#127815; <strong>TODAY Afternoon &mdash; '+aL.length+'/'+ml+' locations:</strong><br>';aT.forEach(function(c){msg+='&nbsp;&bull; <em>'+c.title+'</em>'+(c.loc?' @ '+c.loc:'')+'<br>';});if(aL.length>=ml)msg+='&nbsp;<em style="color:#92400e">Reserve only.</em><br>';msg+='<br>';}
+  }else msg+='&#9989; No hearings today.<br><br>';
+  if(tmc.length){
+    var tmM=tmc.filter(function(c){return c.sess!=='Afternoon';}),tmA=tmc.filter(function(c){return c.sess==='Afternoon'||c.sess==='Allday';});
+    if(tmM.length)msg+='&#9728; <strong>TOMORROW Morning:</strong> '+tmM.map(function(c){return '<em>'+c.title+'</em>'+(c.loc?' @ '+c.loc:'');}).join(', ')+'<br>';
+    if(tmA.length)msg+='&#127815; <strong>TOMORROW Afternoon:</strong> '+tmA.map(function(c){return '<em>'+c.title+'</em>'+(c.loc?' @ '+c.loc:'');}).join(', ')+'<br>';
+    msg+='<br>';
+  }
+  if(upcoming.length){msg+='&#128197; <strong>Later this week:</strong><br>';upcoming.forEach(function(c){msg+='&nbsp;&bull; '+fmtDate(c.date)+' ('+c.sess+') &mdash; <em>'+c.title+'</em>'+(c.loc?' @ '+c.loc:'')+'<br>';});msg+='<br>';}
+  msg+=over.length?'&#9888;&#65039; <strong>'+over.length+' session(s) overloaded &mdash; see below</strong>':'&#9989; All sessions within capacity.';
+  document.getElementById('agentMsg').innerHTML=msg;
+  var ch='';
+  over.forEach(function(sl){
+    var sc=cases.filter(function(c){return c.date===sl.date&&(sl.sess==='Morning'?c.sess!=='Afternoon':c.sess==='Afternoon'||c.sess==='Allday');});
+    ch+='<div class="clash-warning">&#9888; <strong>OVERLOADED &mdash; '+fmtDate(sl.date)+' '+sl.sess+'</strong> ('+sl.locs.length+' locations, max '+maxLocs()+')<br>';
+    sc.forEach(function(c){ch+='&nbsp;&bull; '+c.title+' ('+c.type+')'+(c.loc?' @ '+c.loc:'')+'<br>';});ch+='</div>';
+  });
+  document.getElementById('clashList').innerHTML=ch;
+  var rem=cases.filter(function(c){var d=daysFrom(c.date);return d>=0&&d<=7;}).sort(function(a,b){return a.date.localeCompare(b.date)||(a.sess==='Afternoon'?1:-1);});
+  if(!rem.length){document.getElementById('reminderList').innerHTML='<div class="empty-state">No hearings in next 7 days.</div>';return;}
+  document.getElementById('reminderList').innerHTML=rem.map(function(c){
+    var d=daysFrom(c.date);
+    return '<div class="case-card '+BC[c.type]+'" style="margin-bottom:7px">'+
+      '<div class="case-info"><div class="case-title">'+c.title+'</div>'+
+      '<div class="case-meta">'+c.num+' &middot; <span class="court-label '+CCLS[c.type]+'" style="font-size:.62rem;padding:1px 6px">'+c.type+'</span></div>'+
+      locHtml(c.loc)+sbadge(c.sess||'Morning')+
+      '</div><div style="text-align:right"><div class="date-badge '+(d===0?'tb':'')+'">'+fmtDate(c.date)+'</div>'+
+      '<div class="days-left '+(d<=1?'urgent':'')+'">'+( d===0?'&#128308; TODAY':d===1?'&#128993; TOMORROW':'in '+d+' days')+'</div></div></div>';
+  }).join('');
+}
+
+function renderLocMgr(){
+  // Staff settings box at top
+  renderStaffBox('staffBoxContainer');
+  var el=document.getElementById('locMgrList');
+  if(!locations.length){el.innerHTML='<div class="empty-state">No locations.</div>';return;}
+  var towns={};locations.forEach(function(l){var t=l.town||'Other';if(!towns[t])towns[t]=[];towns[t].push(l);});
+  var html='';
+  Object.keys(towns).sort().forEach(function(town){
+    html+='<div style="width:100%;font-size:.69rem;font-weight:700;color:#4a5568;margin-top:9px;margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase">'+town+'</div>';
+    towns[town].forEach(function(l){
+      var cnt=cases.filter(function(c){return (c.loc||'').trim().toLowerCase()===l.name.trim().toLowerCase();}).length;
+      html+='<div class="loc-mgr-item">'+
+        '<span style="width:8px;height:8px;border-radius:50%;background:'+(BCOL[l.cat]||'#a0aec0')+';display:inline-block;flex-shrink:0"></span>'+
+        '<span style="cursor:pointer;text-decoration:underline dotted;color:#2a4a7f" onclick="openLocModal(\''+l.name.replace(/\'/g,"\\'")+'\')" title="View dates">'+l.name+'</span>'+
+        '<span style="font-size:.63rem;color:#a0aec0">'+l.cat+'</span>'+
+        (cnt?'<span style="font-size:.63rem;background:#ebf4ff;color:#2a4a7f;border-radius:8px;padding:1px 6px">'+cnt+' case'+(cnt>1?'s':'')+'</span>':'')+
+        '<button style="background:none;border:none;cursor:pointer;color:#e53e3e;font-size:.95rem;padding:0 2px" onclick="deleteLoc('+l.id+')">&times;</button></div>';
+    });
+  });
+  el.innerHTML=html;
+}
+
+function addLocation(){
+  var name=document.getElementById('newLocName').value.trim(),town=document.getElementById('newLocTown').value.trim()||'Other',cat=document.getElementById('newLocCat').value;
+  if(!name){alert('Please enter a name.');return;}
+  if(locations.find(function(l){return l.name.toLowerCase()===name.toLowerCase();})){alert('Already exists.');return;}
+  locations.push({id:Date.now(),name:name,town:town,cat:cat});
+  saveLocs();renderLocMgr();document.getElementById('newLocName').value='';document.getElementById('newLocTown').value='';updateLocPicker(true);
+}
+function deleteLoc(id){if(!confirm('Remove?'))return;locations=locations.filter(function(l){return l.id!==id;});saveLocs();renderLocMgr();updateLocPicker(true);}
+
+function updateLocPicker(preserve){
+  if(!preserve){selectedLoc='';var ci=document.getElementById('fLocCustom');if(ci)ci.value='';}
+  var type=document.getElementById('fType').value;
+  var rel=locations.filter(function(l){return l.cat===type||l.cat==='General';});
+  var oth=locations.filter(function(l){return l.cat!==type&&l.cat!=='General';});
+  var picker=document.getElementById('locPicker');if(!picker)return;
+  var towns={};rel.forEach(function(l){var t=l.town||'Other';if(!towns[t])towns[t]=[];towns[t].push(l);});
+  var html='';
+  Object.keys(towns).sort().forEach(function(town){
+    html+='<span style="font-size:.62rem;color:#a0aec0;align-self:center;padding:2px 3px;font-weight:700;text-transform:uppercase">'+town+'</span>';
+    towns[town].forEach(function(l){html+='<span class="loc-chip '+(selectedLoc===l.name?'sel':'')+'" onclick="selLoc(\''+l.name.replace(/\\/g,'\\\\').replace(/\'/g,"\\'")+'\')">'+l.name+'</span>';});
+  });
+  if(oth.length){
+    html+='<span style="font-size:.62rem;color:#cbd5e0;align-self:center;padding:2px 4px;width:100%;margin-top:3px">&#x2501; other:</span>';
+    oth.forEach(function(l){html+='<span class="loc-chip '+(selectedLoc===l.name?'sel':'')+'" style="opacity:.4" onclick="selLoc(\''+l.name.replace(/\\/g,'\\\\').replace(/\'/g,"\\'")+'\')">'+l.name+'</span>';});
+  }
+  if(!locations.length)html='<span style="font-size:.76rem;color:#a0aec0">No locations &mdash; add in Locations tab</span>';
+  picker.innerHTML=html;
+  refreshConflict();
+}
+function selLoc(name){selectedLoc=name;document.getElementById('fLocCustom').value='';updateLocPicker(true);}
+function deselectChip(){selectedLoc='';updateLocPicker(true);}
+
+function saveCase(){
+  var num=document.getElementById('fNum').value.trim(),type=document.getElementById('fType').value;
+  var title=document.getElementById('fTitle').value.trim(),date=document.getElementById('fDate').value;
+  var locCustom=document.getElementById('fLocCustom').value.trim(),loc=selectedLoc||locCustom;
+  var judge=document.getElementById('fJudge').value.trim(),stage=document.getElementById('fStage').value.trim(),notes=document.getElementById('fNotes').value.trim();
+  if(!num||!title||!date){alert('Please fill Case Number, Title and Date.');return;}
+  if(editingId){var i=cases.findIndex(function(c){return c.id===editingId;});if(i>-1)cases[i]=Object.assign({},cases[i],{num:num,type:type,title:title,date:date,sess:currentSess,loc:loc,judge:judge,stage:stage,notes:notes});editingId=null;}
+  else{cases.push({id:Date.now(),num:num,type:type,title:title,date:date,sess:currentSess,loc:loc,judge:judge,stage:stage,notes:notes});if(locCustom&&!locations.find(function(l){return l.name.toLowerCase()===locCustom.toLowerCase();})){locations.push({id:Date.now()+1,name:locCustom,town:'Other',cat:type});saveLocs();}}
+  saveCases();clearForm();renderTimeline();renderUpdateList();switchTab('timeline');
+}
+function editCase(id){
+  var c=cases.find(function(x){return x.id===id;});if(!c)return;
+  editingId=id;document.getElementById('fNum').value=c.num;document.getElementById('fType').value=c.type;document.getElementById('fTitle').value=c.title;document.getElementById('fDate').value=c.date;
+  document.getElementById('fJudge').value=c.judge||'';document.getElementById('fStage').value=c.stage||'';document.getElementById('fNotes').value=c.notes||'';
+  selectedLoc=c.loc||'';currentSess=c.sess||'Morning';setSess(currentSess);document.getElementById('fLocCustom').value='';
+  updateLocPicker(true);document.getElementById('formTitle').textContent='Edit Case Date';switchTab('add');window.scrollTo(0,0);
+}
+function deleteCase(id){if(!confirm('Delete?'))return;cases=cases.filter(function(c){return c.id!==id;});saveCases();renderTimeline();renderUpdateList();}
+function clearForm(){
+  ['fNum','fTitle','fDate','fJudge','fStage','fNotes','fLocCustom'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('fType').value='Civil';selectedLoc='';editingId=null;currentSess='Morning';setSess('Morning');
+  document.getElementById('formTitle').textContent='Add New Case Date';
+  var ch=document.getElementById('conflictHint');if(ch)ch.style.display='none';updateLocPicker();
+}
+function renderUpdateList(){
+  var el=document.getElementById('updateList');
+  if(!cases.length){el.innerHTML='<div class="empty-state">No cases yet.</div>';return;}
+  el.innerHTML=[...cases].sort(function(a,b){return a.date.localeCompare(b.date);}).map(function(c){
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f5;gap:7px">'+
+      '<div style="flex:1;min-width:0"><strong style="font-size:.84rem">'+c.title+'</strong><br>'+
+      '<span style="font-size:.71rem;color:#718096">'+c.num+' &middot; <span class="court-label '+CCLS[c.type]+'" style="font-size:.62rem;padding:1px 5px">'+c.type+'</span> &middot; '+fmtDate(c.date)+' &middot; '+(c.sess||'Morning')+(c.loc?' &middot; &#128205;'+c.loc:'')+'</span></div>'+
+      '<div style="display:flex;gap:4px;flex-shrink:0"><button class="btn-sm" onclick="editCase('+c.id+')">&#9998;</button><button class="btn-del" onclick="deleteCase('+c.id+')">&#10005;</button></div></div>';
+  }).join('');
+}
+
+var recognition=null,isListening=false;
+function toggleVoice(){
+  if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert('Voice needs Chrome or Edge.');return;}
+  if(isListening){recognition.stop();return;}
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SR();recognition.lang='en-IN';recognition.interimResults=false;
+  recognition.onstart=function(){isListening=true;document.getElementById('voiceBtn').classList.add('listening');document.getElementById('voiceTxt').textContent='Listening...';};
+  recognition.onend=function(){isListening=false;document.getElementById('voiceBtn').classList.remove('listening');document.getElementById('voiceTxt').textContent='Tap to speak case details (Chrome/Edge)';};
+  recognition.onresult=function(e){
+    var txt=e.results[0][0].transcript;document.getElementById('voiceOut').textContent='"'+txt+'"';
+    var tl=txt.toLowerCase(),tm2={civil:'Civil',criminal:'Criminal',revenue:'Revenue',rti:'RTI',tribunal:'Tribunal',inspection:'Inspection'};
+    Object.keys(tm2).forEach(function(k){if(tl.indexOf(k)>-1)document.getElementById('fType').value=tm2[k];});
+    if(/afternoon/i.test(tl))setSess('Afternoon');else if(/full day/i.test(tl))setSess('Allday');else if(/morning/i.test(tl))setSess('Morning');
+    updateLocPicker(true);
+    if(!document.getElementById('fTitle').value){var cl=txt.replace(/civil|criminal|revenue|rti|tribunal|inspection|morning|afternoon|full day|court|next|date|hearing/gi,'').trim();if(cl)document.getElementById('fTitle').value=cl;}
+    if(!document.getElementById('fNotes').value)document.getElementById('fNotes').value=txt;
+  };
+  recognition.start();
+}
+
+function switchTab(name){
+  ['timeline','add','weekly','agent','locations'].forEach(function(t){document.getElementById('tab-'+t).style.display=t===name?'':'none';});
+  document.querySelectorAll('.tab').forEach(function(btn,i){btn.classList.toggle('active',['timeline','add','weekly','agent','locations'][i]===name);});
+  if(name==='weekly')renderWeekly();if(name==='agent')renderAgent();
+  if(name==='add'){renderUpdateList();updateLocPicker();}
+  if(name==='timeline'){renderFilters();renderTimeline();}
+  if(name==='locations')renderLocMgr();
+}
+
+function updateClock(){document.getElementById('clockDisplay').textContent=new Date().toLocaleString('en-IN',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}
+setInterval(updateClock,30000);updateClock();
+setSess('Morning');updateStats();checkAlerts();renderFilters();renderTimeline();
+</script>
+</body>
+</html>
